@@ -6,6 +6,7 @@ from .classification import (
     confusion_matrix,
     classification_report,
 )
+from .clustering import silhouette_score
 
 __all__ = [
     'accuracy_score',
@@ -14,4 +15,5 @@ __all__ = [
     'f1_score',
     'confusion_matrix',
     'classification_report',
+    'silhouette_score',
 ]
