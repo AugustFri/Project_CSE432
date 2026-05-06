@@ -16,12 +16,16 @@ class _Node:
 class DecisionTreeClassifier:
     """CART decision tree using Gini impurity (or entropy)."""
 
-    def __init__(self, max_depth=None, min_samples_split=2, criterion='gini', max_thresholds=64):
+    def __init__(self, max_depth=None, min_samples_split=2, criterion='gini',
+                 max_thresholds=64, max_features=None, random_state=None):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.criterion = criterion
         # cap candidate thresholds per feature to keep training tractable
         self.max_thresholds = max_thresholds
+        # number of features to consider at each split; 'sqrt', int, or None (all)
+        self.max_features = max_features
+        self.random_state = random_state
 
     # ------------------------------------------------------------------
     # impurity
@@ -38,12 +42,24 @@ class DecisionTreeClassifier:
     # split search
     # ------------------------------------------------------------------
 
+    def _feature_indices(self, n_features):
+        """Return the subset of feature indices to evaluate at this split."""
+        if self.max_features is None:
+            return range(n_features)
+        if self.max_features == 'sqrt':
+            k = max(1, int(np.sqrt(n_features)))
+        elif isinstance(self.max_features, float):
+            k = max(1, int(self.max_features * n_features))
+        else:
+            k = max(1, min(int(self.max_features), n_features))
+        return self._rng.choice(n_features, size=k, replace=False)
+
     def _best_split(self, X, y):
         best_gain, best_feat, best_thresh = -1.0, None, None
         n = len(y)
         parent_imp = self._impurity(y)
 
-        for feat in range(X.shape[1]):
+        for feat in self._feature_indices(X.shape[1]):
             vals = np.unique(X[:, feat])
             # use percentile midpoints when there are many unique values
             if len(vals) > self.max_thresholds:
@@ -95,6 +111,7 @@ class DecisionTreeClassifier:
     def fit(self, X, y):
         self.classes_ = np.unique(y)
         self.n_features_ = np.array(X).shape[1]
+        self._rng = np.random.RandomState(self.random_state)
         self.root_ = self._build(np.array(X, dtype=float), np.array(y), depth=0)
         return self
 
