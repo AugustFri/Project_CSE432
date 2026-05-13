@@ -3,6 +3,7 @@ from collections import Counter
 
 
 class _Node:
+    # __slots__ avoids a per-instance __dict__; trees can have millions of nodes
     __slots__ = ('feature', 'threshold', 'left', 'right', 'value')
 
     def __init__(self, *, feature=None, threshold=None, left=None, right=None, value=None):
@@ -61,12 +62,12 @@ class DecisionTreeClassifier:
 
         for feat in self._feature_indices(X.shape[1]):
             vals = np.unique(X[:, feat])
-            # use percentile midpoints when there are many unique values
+            # percentile sampling caps candidates so split search stays O(T·F·n) not O(n²·F)
             if len(vals) > self.max_thresholds:
                 percs = np.linspace(0, 100, self.max_thresholds + 2)[1:-1]
                 thresholds = np.percentile(X[:, feat], percs)
             else:
-                # midpoints between sorted unique values
+                # midpoints between adjacent unique values are the only splits worth testing
                 thresholds = (vals[:-1] + vals[1:]) / 2
 
             for thresh in thresholds:
@@ -111,6 +112,7 @@ class DecisionTreeClassifier:
     def fit(self, X, y):
         self.classes_ = np.unique(y)
         self.n_features_ = np.array(X).shape[1]
+        # store rng as instance state so RandomForest can seed each tree independently
         self._rng = np.random.RandomState(self.random_state)
         self.root_ = self._build(np.array(X, dtype=float), np.array(y), depth=0)
         return self

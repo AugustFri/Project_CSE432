@@ -39,6 +39,7 @@ class MLPClassifier:
     def _init_params(self, layer_sizes, rng):
         self.W_, self.b_ = [], []
         for i in range(len(layer_sizes) - 1):
+            # He init: var = 2/fan_in compensates for ReLU zeroing ~half of activations
             scale = np.sqrt(2.0 / layer_sizes[i])
             self.W_.append(rng.normal(0, scale, (layer_sizes[i], layer_sizes[i + 1])))
             self.b_.append(np.zeros(layer_sizes[i + 1]))
@@ -61,7 +62,8 @@ class MLPClassifier:
         n = len(Y)
         dW = [np.zeros_like(w) for w in self.W_]
         db = [np.zeros_like(b) for b in self.b_]
-        delta = acts[-1] - Y                          # softmax + cross-entropy gradient
+        # softmax Jacobian composed with cross-entropy gradient collapses to (ŷ - y)
+        delta = acts[-1] - Y
         for i in reversed(range(len(self.W_))):
             dW[i] = acts[i].T @ delta / n
             db[i] = delta.mean(axis=0)
@@ -88,7 +90,7 @@ class MLPClassifier:
         layer_sizes = [n_features] + list(self.hidden_layer_sizes) + [n_classes]
         self._init_params(layer_sizes, rng)
 
-        # Adam state
+        # Adam state — beta1/beta2/eps are the values from the original paper (Kingma & Ba 2015)
         beta1, beta2, eps = 0.9, 0.999, 1e-8
         mW = [np.zeros_like(w) for w in self.W_]
         vW = [np.zeros_like(w) for w in self.W_]
@@ -110,14 +112,15 @@ class MLPClassifier:
                 zs, acts = self._forward(Xb)
                 dW, db   = self._backward(zs, acts, Yb)
 
+                # step counts total mini-batch updates so bias correction reflects actual iterations
                 step += 1
                 for i in range(len(self.W_)):
                     mW[i] = beta1 * mW[i] + (1 - beta1) * dW[i]
                     vW[i] = beta2 * vW[i] + (1 - beta2) * dW[i] ** 2
                     mb[i] = beta1 * mb[i] + (1 - beta1) * db[i]
                     vb[i] = beta2 * vb[i] + (1 - beta2) * db[i] ** 2
-                    mW_h  = mW[i] / (1 - beta1 ** step)
-                    vW_h  = vW[i] / (1 - beta2 ** step)
+                    mW_h  = mW[i] / (1 - beta1 ** step)   # bias-corrected first moment
+                    vW_h  = vW[i] / (1 - beta2 ** step)   # bias-corrected second moment
                     mb_h  = mb[i] / (1 - beta1 ** step)
                     vb_h  = vb[i] / (1 - beta2 ** step)
                     self.W_[i] -= self.lr * mW_h / (np.sqrt(vW_h) + eps)

@@ -21,9 +21,11 @@ class LinearSVM:
         b = 0.0
 
         for t in range(1, self.max_iter + 1):
-            lr_t = self.lr / np.sqrt(t)        # decaying step size
+            # Pegasos-style 1/√t decay preserves O(1/√T) convergence for sub-gradient descent
+            lr_t = self.lr / np.sqrt(t)
             margins = y_bin * (X @ w + b)      # (n,)
-            violated = margins < 1             # support-vector mask
+            # hinge loss is zero when margin ≥ 1; only violated points contribute a gradient
+            violated = margins < 1
 
             if violated.any():
                 grad_w = w - self.C * (y_bin[violated, None] * X[violated]).sum(axis=0) / n

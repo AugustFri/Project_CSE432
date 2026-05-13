@@ -38,6 +38,7 @@ class RandomForestClassifier:
                 min_samples_split=self.min_samples_split,
                 max_thresholds=self.max_thresholds,
                 max_features=self.max_features,
+                # cast to Python int — numpy int64 breaks RandomState seeding in some builds
                 random_state=int(rng.randint(0, 2 ** 31)),
             )
             tree.fit(X_boot, y_boot)

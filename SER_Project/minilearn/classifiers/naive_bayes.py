@@ -17,10 +17,12 @@ class GaussianNaiveBayes:
         return self
 
     def _log_likelihood(self, X, c):
+        # log of ∏ᵢ N(xᵢ; μᵢ, σᵢ²) — sum of per-feature log-Gaussians
         mean, var = self.means_[c], self.vars_[c]
         return -0.5 * np.sum(np.log(2 * np.pi * var) + (X - mean) ** 2 / var, axis=1)
 
     def predict_log_proba(self, X):
+        # returns unnormalized log-posteriors; argmax is invariant to the missing log-evidence term
         X = np.array(X, dtype=float)
         return np.column_stack([
             np.log(self.priors_[c]) + self._log_likelihood(X, c)

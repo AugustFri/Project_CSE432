@@ -19,7 +19,9 @@ class KNN:
         return np.array([self._predict_one(x) for x in X])
 
     def _predict_one(self, x):
+        # squared distances are sufficient for ordering — skip sqrt
         sq_dists = np.sum((self.X_train_ - x) ** 2, axis=1)
+        # argpartition is O(n) vs argsort's O(n log n); order within the k neighbours doesn't matter
         k_idx = np.argpartition(sq_dists, self.n_neighbors)[:self.n_neighbors]
         return Counter(self.y_train_[k_idx]).most_common(1)[0][0]
 

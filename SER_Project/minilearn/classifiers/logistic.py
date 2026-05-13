@@ -33,6 +33,7 @@ class LogisticRegression:
         n_samples, n_features = X.shape
         n_classes = len(self.classes_)
 
+        # searchsorted maps arbitrary label values to contiguous 0-based indices
         y_idx = np.searchsorted(self.classes_, y)          # integer labels
         Y = np.eye(n_classes)[y_idx]                       # one-hot (N, K)
 
@@ -45,6 +46,7 @@ class LogisticRegression:
             grad_b = (probs - Y).mean(axis=0)
             self.W_ -= self.lr * grad_W
             self.b_ -= self.lr * grad_b
+            # check effective step size, not raw gradient, so tol is scale-independent
             if np.max(np.abs(self.lr * grad_W)) < self.tol:
                 break
 
